@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Nov  2 19:25:17 2025
+Created on Thu Nov  6 19:22:21 2025
 
 @author: LEHBERGCT22
 """
@@ -13,19 +13,24 @@ from skimage.filters import threshold_otsu
 
 def main():
     # === USER SETTINGS ===
-    folder_path = "./Test6_frames_tif_8bit"
+        # Get the directory where this Python file is located
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Add your specific folder name here (inside the same directory as this script)
+    subfolder = "Test6_frames_tif_8bit"  # <-- you can change this freely
+    folder_path = os.path.join(base_dir, subfolder)
+    
     start = 410
     end = 420
-    min_pixels = 200  # minimum region area (in pixels)
-    PixelLength = 460 - 20  # scale bar length in pixels, change the 460 to whatever it needs to be
-    mm_per_pixel = 10 / PixelLength  # conversion factor (1 cm = 10 mm)
-    output_csv = os.path.join(folder_path, "all_diameters.csv")
+    min_pixels = 1  # minimum region area (in pixels)
+    PixelLength = 460 - 20  # scale bar length in pixels
+    nm_per_pixel = 1000 / PixelLength  # conversion factor (1 µm = 1000 nm)
+    output_csv = os.path.join(folder_path, "droplet_diameters_by_frame.csv")
     # ======================
 
     print(f"\nProcessing frames {start}–{end} from:\n{folder_path}\n")
 
-    # Store all results across all frames
-    all_results = []
+    all_rows = []  # will store one row per frame
 
     for i in range(start, end + 1):
         filename = f"frame_{i:04d}.TIF"
@@ -48,26 +53,31 @@ def main():
 
         # === Measure labeled regions ===
         props = measure.regionprops(labeled)
-        frame_results = []
+        diameters_nm = []
 
-        for n, region in enumerate(props):
+        for region in props:
             if region.area > min_pixels:
                 diameter_nm = region.equivalent_diameter * nm_per_pixel
-                frame_results.append((i, n, diameter_nm))
+                diameters_nm.append(diameter_nm)
 
-        if frame_results:
-            frame_df = pd.DataFrame(frame_results, columns=["frame_number", "particle_number", "diameter_nm"])
-            all_results.append(frame_df)
-            print(f"  -> {len(frame_df)} particles > {min_pixels}px")
+        diameters_nm.sort(reverse=True)  # optional: largest to smallest
+
+        if diameters_nm:
+            row_data = {"Frame_number": i}
+            for j, d in enumerate(diameters_nm, start=1):
+                row_data[f"Particle_{j}"] = d
+            all_rows.append(row_data)
+            print(f"  -> {len(diameters_nm)} particles recorded")
         else:
+            all_rows.append({"Frame_number": i})
             print(f"  -> No regions found > {min_pixels}px")
 
-    # === Combine and export all results ===
-    if all_results:
-        final_df = pd.concat(all_results, ignore_index=True)
+    # === Combine all rows and export ===
+    if all_rows:
+        final_df = pd.DataFrame(all_rows)
         final_df.to_csv(output_csv, index=False)
-        print(f"\n✅ Combined results saved to:\n{output_csv}")
-        print(f"Total rows: {len(final_df)}")
+        print(f"\n✅ Droplet diameters saved to:\n{output_csv}")
+        print(f"Total frames processed: {len(final_df)}")
     else:
         print("\n⚠️ No valid particle data found for any frames.")
 
