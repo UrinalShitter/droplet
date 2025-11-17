@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Nov 16 19:20:22 2025
+
+@author: LEHBERGCT22
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Thu Nov  6 19:22:21 2025
 
 @author: LEHBERGCT22
@@ -20,9 +27,10 @@ def main():
     subfolder = "Test6_frames_tif_8bit"  # <-- you can change this freely
     folder_path = os.path.join(base_dir, subfolder)
     
-    start = 410
-    end = 420
+    start = 0000
+    end = 1483
     min_pixels = 1  # minimum region area (in pixels)
+    max_diameter_mm = .5
     PixelLength = 460  
     # scale bar length in pixels. original code had 1um scalebar. we will go with 1cm physical scalebar
     # we will measure the pixel amount of the scalebar nad record it above
@@ -59,9 +67,11 @@ def main():
         diameters_mm = []
 
         for region in props:
-            if region.area > min_pixels:
-                diameter_mm = region.equivalent_diameter * mm_per_pixel
+            diameter_mm = region.equivalent_diameter * mm_per_pixel
+
+            if region.area > min_pixels and diameter_mm <= max_diameter_mm:
                 diameters_mm.append(diameter_mm)
+
 
         diameters_mm.sort(reverse=True)  # optional: largest to smallest
 
@@ -86,4 +96,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
